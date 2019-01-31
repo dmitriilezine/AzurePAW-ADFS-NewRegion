@@ -57,13 +57,6 @@
         "description": "Name of the subnet in the virtual network you want to put this VM"
       }
     },
-    "subscriptionID": {
-      "type": "string",
-      "metadata": {
-        "description": "Subscription ID is used to provide access path to the Key Vault with secrets to access deployment scripts"
-      },
-      "defaultValue": "Subscription ID for Secrets Key Vault that provide access to the deployment scripts."
-    },
 
     "VirtualMachineSize": {
       "type": "string",
@@ -134,6 +127,20 @@
         "description": "Specify storage account RG"
       }
     },
+    "adfsAvailabiltySetR2": {
+      "type": "string",
+      "metadata": {
+        "description": "Availability Set name for ADFS servers in Region 2"
+      },
+      "defaultValue": "adfsAvailabiltySetR2"
+    },
+    "ilbADFSNameR2": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for ADFS ILB in R2"
+      },
+      "defaultValue": "ilbADFSR2"
+    },
     "DepSecretsVaultName": {
       "type": "string",
       "metadata": {
@@ -172,6 +179,13 @@
         "description": "ADE Key Vault RG"
       }
     },
+    "subscriptionID": {
+      "type": "string",
+      "metadata": {
+        "description": "Subscription ID is used to provide access path to the Key Vault with secrets to access deployment scripts"
+      },
+      "defaultValue": "Subscription ID for Secrets Key Vault that provide access to the deployment scripts."
+    },
     "secretsVaultName": {
       "type": "string",
       "metadata": {
@@ -197,20 +211,6 @@
         "description": "Name of the secret in the Secrets Key Vault which contains SAS for SA"
       },
       "defaultValue": "AzurePAWPOC1SAS"
-    },
-    "adfsAvailabiltySetR2": {
-      "type": "string",
-      "metadata": {
-        "description": "Availability Set name for ADFS servers in Region 2"
-      },
-      "defaultValue": "adfsAvailabiltySetR2"
-    },
-    "ilbADFSNameR2": {
-      "type": "string",
-      "metadata": {
-        "description": "Name for ADFS ILB in R2"
-      },
-      "defaultValue": "ilbADFSR2"
     }
   },
   "variables": {
