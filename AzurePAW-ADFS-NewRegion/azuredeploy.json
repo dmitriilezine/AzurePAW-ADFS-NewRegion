@@ -201,7 +201,7 @@
     }
   },
   "variables": {
-    "assetLocation": "https://raw.githubusercontent.com/dmitriilezine/AzurePAW-ADFS/master/AzurePAW-ADFS",
+    "assetLocation": "https://raw.githubusercontent.com/dmitriilezine/AzurePAW-ADFS-NewRegion/master/AzurePAW-ADFS-NewRegion",
     "assetLocationStorageAccount": "[parameters('ScriptsLocation')]",
     "VMSize": "[parameters('VirtualMachineSize')]",
 
