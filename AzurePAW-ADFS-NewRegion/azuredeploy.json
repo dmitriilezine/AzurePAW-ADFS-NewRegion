@@ -1,8 +1,716 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
-  "parameters": {},
-  "variables": {},
-  "resources": [],
+  "parameters": {
+
+    "domainName": {
+      "type": "string",
+      "metadata": {
+        "description": "Current deployment supports top level domain name only, for example contoso.com, fabrikam.com etc"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Administrator of the new VMs and Domain"
+      },
+      "defaultValue": "labadmin"
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password for the Administrator account of the new VMs and Domain. If you do not change it, then it will look like this: Subscription#SUBSCRIPTIONID"
+      },
+      "defaultValue": "[concat('Subscription#',subscription().subscriptionId)]"
+    },
+    "adfsSVCname": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the ADFS Service Account"
+      },
+      "defaultValue": "adfs-svc"
+    },
+    "adfsSVCPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password for the ADFS Service account"
+      }
+    },
+    "existingVirtualNetworkName": {
+      "type": "string",
+      "defaultValue": "Add existing vNet Name where this deployment will be deployed to",
+      "metadata": {
+        "description": "Specify the name for the vNet to whcih this server will be deployed."
+      }
+    },
+    "existingVirtualNetworkResourceGroup": {
+      "type": "string",
+      "defaultValue": "Add vNet RG Name",
+      "metadata": {
+        "description": "Name of the existing VNET resource group"
+      }
+    },
+    "ADFSubnetName": {
+      "type": "string",
+      "defaultValue": "Add Subnet Name where ADFS will be deployed in vNet -> ADFS...",
+      "metadata": {
+        "description": "Name of the subnet in the virtual network you want to put this VM"
+      }
+    },
+    "subscriptionID": {
+      "type": "string",
+      "metadata": {
+        "description": "Subscription ID is used to provide access path to the Key Vault with secrets to access deployment scripts"
+      },
+      "defaultValue": "Subscription ID for Secrets Key Vault that provide access to the deployment scripts."
+    },
+    "secretsVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Key Vault where secrets are stored"
+      }
+    },
+    "secretsKeyVaultRG": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the RG where Secrets Key Vault is stored"
+      }
+    },
+    "ADFSCertID": {
+      "type": "string",
+      "metadata": {
+        "description": "ADFS Cert to be deployed to ADFS VMs. Certificate container and id from the AKV, for example mycertcontainer/453l4k5j3lk45jk235jl3k5j34 "
+      },
+      "defaultValue": "Replace with your mycertcontainer/453l4k5j3lk45jk235jl3k5j34."
+    },
+    "ADFSServiceCert": {
+      "type": "string",
+      "metadata": {
+        "description": "Subject name of the external cert for ADFS. This must match the subject from the cert in the ADFSCertID "
+      },
+      "defaultValue": "Replace with your fs.contoso.com ADFS cert subject name"
+    },
+    "VirtualMachineSize": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_DS12_v2",
+        "Standard_DS2_v2",
+        "Standard_D8S_v3",
+        "Standard_A2"
+      ],
+      "metadata": {
+        "description": "VM Size. The bigger it is, the more $ you will spend."
+      },
+      "defaultValue": "Standard_DS2_v2"
+    },
+    "adfsR2VMName1": {
+      "type": "string",
+      "metadata": {
+        "description": "Must be compliant with Windows Server naming convention"
+      },
+      "defaultValue": "ADFS5-LAB"
+    },
+    "adfsR2VMName2": {
+      "type": "string",
+      "metadata": {
+        "description": "Must be compliant with Windows Server naming convention"
+      },
+      "defaultValue": "ADFS6-LAB"
+    },
+    "adfsR2VM1IPAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "IP Address for ADFS VM 1 in Region 2"
+      },
+      "defaultValue": "10.1.5.4"
+    },
+    "adfsR2VM2IPAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "IP Address for ADFS VM 2 in Region 2"
+      },
+      "defaultValue": "10.1.5.5"
+    },
+    "ILBforADFSinR2": {
+      "type": "string",
+      "metadata": {
+        "description": "IP Address for ADFS farm ILB in R2"
+      },
+      "defaultValue": "10.1.5.100"
+    },
+    "ScriptsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account URL for scripts"
+      },
+      "defaultValue": "https://azurepaw.blob.core.windows.net"
+    },
+    "diagnosticsStorageAccountName": {
+      "type": "string",
+      "defaultValue": "RealStorageAccountName",
+      "metadata": {
+        "description": "Specify storage account that will be used for VM diagnostics"
+      }
+    },
+    "StorageAccountRG": {
+      "type": "string",
+      "defaultValue": "RG where Storage account is located",
+      "metadata": {
+        "description": "Specify storage account RG"
+      }
+    },
+    "adeKeyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault Name used for Azure Disk Encryption for this VM. Must be in the same region as this VM"
+      }
+    },
+    "adeKeyVaultResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "ADE Key Vault RG"
+      }
+    },
+    "AzurePAWPOC1SAKey2": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the secret in the Secrets Key Vault which contains key for SA"
+      },
+      "defaultValue": "AzurePAWPOC1SAKey2"
+    },
+    "AzurePAWPOC1SAS": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the secret in the Secrets Key Vault which contains SAS for SA"
+      },
+      "defaultValue": "AzurePAWPOC1SAS"
+    },
+    "adfsAvailabiltySetR2": {
+      "type": "string",
+      "metadata": {
+        "description": "Availability Set name for ADFS servers in Region 2"
+      },
+      "defaultValue": "adfsAvailabiltySetR2"
+    },
+    "ilbADFSNameR2": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for ADFS ILB in R2"
+      },
+      "defaultValue": "ilbADFSR2"
+    }
+  },
+  "variables": {
+    "assetLocation": "https://raw.githubusercontent.com/dmitriilezine/AzurePAW-ADFS/master/AzurePAW-ADFS",
+    "assetLocationStorageAccount": "[parameters('ScriptsLocation')]",
+    "VMSize": "[parameters('VirtualMachineSize')]",
+
+    "ADFSsubnetID": "[resourceId(parameters('existingVirtualNetworkResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('existingVirtualNetworkName'), parameters('ADFSubnetName'))]",
+
+    "ADFSVM1IpAddress": "[parameters('adfsR2VM1IPAddress')]",
+    "ADFSVM2IpAddress": "[parameters('adfsR2VM2IPAddress')]",
+
+    "ilbADFSprivateIPAddress": "[parameters('ILBforADFSinR2')]",
+
+    "ilbTemplateURL": "[concat(variables('assetLocation'),'/data/ilbDeployment.json')]",
+    "adfsVMTemplateURL": "[concat(variables('assetLocation'),'/data/adfsVm.json')]",
+    "adfsFarmTemplateURL": "[concat(variables('assetLocation'),'/data/adfsfarm.json')]",
+    "vmDiagnosticsTemplateURL": "[concat(variables('assetLocation'),'/data/vmDiagnostics.json')]",
+    "vmAntimalwareTemplateURL": "[concat(variables('assetLocation'),'/data/deployAntimalware.json')]",
+    "vmADETemplateURL": "[concat(variables('assetLocation'),'/data/encryptVM.json')]",
+
+    "adfsVMName": "[parameters('adfsR2VMName1')]",
+    "adfsVM2Name": "[parameters('adfsR2VMName2')]",
+
+    "deployILBforADFS": "DeployILBforADFS",
+    "deployILBforADFSId": "[concat('Microsoft.Resources/deployments/', variables('deployILBforADFS'))]",
+
+    "adfsVmDeployment": "CreateADFSVM1",
+    "adfsVmDeploymentId": "[concat('Microsoft.Resources/deployments/', variables('adfsVmDeployment'))]",
+    "adfsVm2Deployment": "CreateADFSVM2",
+    "adfsVm2DeploymentId": "[concat('Microsoft.Resources/deployments/', variables('adfsVm2Deployment'))]",
+
+    "adfsFarmTemplatesDeployment": "DeployADFSFarm",
+    "adfsFarmTemplatesDeploymentId": "[concat('Microsoft.Resources/deployments/', variables('adfsFarmTemplatesDeployment'))]",
+    "adfsFarmTemplatesDeploymentonVM2": "DeployADFSFarmonVM2",
+    "adfsFarmTemplatesDeploymentonVM2Id": "[concat('Microsoft.Resources/deployments/', variables('adfsFarmTemplatesDeploymentonVM2'))]",
+
+    "deployVMDiagnosticsADFS1": "deployVMDiagnosticsADFS1",
+    "deployVMDiagnosticsADFS1Id": "[concat('Microsoft.Resources/deployments/', variables('deployVMDiagnosticsADFS1'))]",
+    "deployVMDiagnosticsADFS2": "deployVMDiagnosticsADFS2",
+    "deployVMDiagnosticsADFS2Id": "[concat('Microsoft.Resources/deployments/', variables('deployVMDiagnosticsADFS2'))]",
+
+    "deployAntimalwareADFS1": "deployAntimalwareADFS1",
+    "deployAntimalwareADFS1Id": "[concat('Microsoft.Resources/deployments/', variables('deployAntimalwareADFS1'))]",
+    "deployAntimalwareADFS2": "deployAntimalwareADFS2",
+    "deployAntimalwareADFS2Id": "[concat('Microsoft.Resources/deployments/', variables('deployAntimalwareADFS2'))]",
+
+    "encryptADFS1": "encryptADFS1",
+    "encryptADFS1Id": "[concat('Microsoft.Resources/deployments/', variables('encryptADFS1'))]",
+    "encryptADFS2": "encryptADFS2",
+    "encryptADFS2Id": "[concat('Microsoft.Resources/deployments/', variables('encryptADFS2'))]",
+
+    "shortDomainName": "[split(parameters('domainName'),'.')[0]]",
+    "domainSuffix": "[split(parameters('domainName'),'.')[1]]",
+    "ouPathT0Devices": "[concat('OU=T0-Devices; OU=Tier 0; OU=Admin;', 'DC=',variables('shortDomainName'),'; DC=',variables('domainSuffix'))]",
+    "ouPathAdmin": "[concat('OU=Admin;', 'DC=',variables('shortDomainName'),'; DC=',variables('domainSuffix'))]",
+    "ouPathT0Idenity": "[concat('OU=T0-Identity; OU=T0-Servers; OU=Tier 0; OU=Admin;', 'DC=',variables('shortDomainName'),'; DC=',variables('domainSuffix'))]",
+    "ouPathNone": "",
+
+    "configurationFunctionDSC": "DeployADFS.ps1\\InstallADFSFarmonADFSvm2",
+
+    "secretsVaultName": "[parameters('secretsVaultName')]",
+    "secretName": "[parameters('AzurePAWPOC1SAKey2')]",
+    "secretnameSASurl": "[parameters('AzurePAWPOC1SAS')]",
+    "secretsKeyVaultRG": "[parameters('secretsKeyVaultRG')]",
+    "secretskeyVaultID": "[concat('/subscriptions/', parameters('subscriptionID'), '/resourceGroups/', variables('secretsKeyVaultRG'), '/providers/Microsoft.KeyVault/vaults/', variables('secretsVaultName'))]",
+    "CertForADFS": "[concat('https://', parameters('secretsVaultName'), '.vault.azure.net:443/secrets/', parameters('ADFSCertID'))]",
+
+    "adfsAvailabilitySetName": "[parameters('adfsAvailabiltySetR2')]",
+
+    "OSVersion": "2016-Datacenter",
+    "imageOffer": "WindowsServer",
+    "imagePublisher": "MicrosoftWindowsServer",
+
+    "ilbADFSName": "[concat(parameters('ilbADFSNameR2'),'-',resourceGroup().name)]",
+    "ilbADFSID": "[resourceId('Microsoft.Network/loadBalancers',variables('ilbADFSName'))]",
+
+    "adfsNICName": "[concat(parameters('adfsR2VMName1'),'-Nic',resourceGroup().name)]",
+    "adfs2NICName": "[concat(parameters('adfsR2VMName2'),'-Nic',resourceGroup().name)]",
+
+    "diagnosticsAccountid": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/',parameters('StorageAccountRG'), '/providers/','Microsoft.Storage/storageAccounts/', parameters('diagnosticsStorageAccountName'))]"
+  },
+  "resources": [
+    {
+      "name": "[variables('adfsAvailabilitySetName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "apiVersion": "2017-03-30",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "PlatformUpdateDomainCount": 3,
+        "PlatformFaultDomainCount": 2
+      },
+      "sku": {
+        "name": "Aligned"
+      }
+    },
+
+    {
+      "name": "[variables('deployILBforADFS')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": { "uri": "[variables('ilbTemplateURL')]" },
+        "parameters": {
+          "ilbName": { "value": "[variables('ilbADFSName')]" },
+          "subnetResourceID": { "value": "[variables('ADFSsubnetID')]" },
+          "ilbPrivateIPAddress": { "value": "[variables('ilbADFSprivateIPAddress')]" }
+        }
+      }
+    },
+
+    {
+      "comments": "Deploy ADFS VM",
+      "name": "[variables('adfsVmDeployment')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/availabilitySets',variables('adfsAvailabilitySetName'))]",
+        "[variables('deployILBforADFS')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('adfsVMTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "subnetResourceID": {
+            "value": "[variables('ADFSsubnetID')]"
+          },
+          "windowsImageSKU": {
+            "value": "[variables('OSVersion')]"
+          },
+          "vmName": {
+            "value": "[variables('adfsVMName')]"
+          },
+          "vmSize": {
+            "value": "[variables('VMSize')]"
+          },
+          "NicName": {
+            "value": "[variables('adfsNICName')]"
+          },
+          "primaryIpAddress": {
+            "value": "[variables('ADFSVM1IpAddress')]"
+          },
+          "domainName": {
+            "value": "[parameters('domainName')]"
+          },
+          "availabilitySetName": {
+            "value": "[variables('adfsAvailabilitySetName')]"
+          },
+          "keyVaultID": {
+            "value": "[variables('secretskeyVaultID')]"
+          },
+          "CertForADFS": {
+            "value": "[variables('CertForADFS')]"
+          },
+          "ouPath": {
+            "value": "[variables('ouPathAdmin')]"
+          },
+          "ilbID": {
+            "value": "[variables('ilbADFSID')]"
+          },
+          "diagnosticsStorageAccountName": {
+            "value": "[parameters('diagnosticsStorageAccountName')]"
+          }
+        }
+      }
+    },
+    {
+      "comments": "Deploy ADFS VM 2",
+      "name": "[variables('adfsVm2Deployment')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/availabilitySets',variables('adfsAvailabilitySetName'))]",
+        "[variables('deployILBforADFS')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('adfsVMTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "subnetResourceID": {
+            "value": "[variables('ADFSsubnetID')]"
+          },
+          "windowsImageSKU": {
+            "value": "[variables('OSVersion')]"
+          },
+          "vmName": {
+            "value": "[variables('adfsVM2Name')]"
+          },
+          "vmSize": {
+            "value": "[variables('VMSize')]"
+          },
+          "NicName": {
+            "value": "[variables('adfs2NICName')]"
+          },
+          "primaryIpAddress": {
+            "value": "[variables('ADFSVM2IpAddress')]"
+          },
+          "domainName": {
+            "value": "[parameters('domainName')]"
+          },
+          "availabilitySetName": {
+            "value": "[variables('adfsAvailabilitySetName')]"
+          },
+          "keyVaultID": {
+            "value": "[variables('secretskeyVaultID')]"
+          },
+          "CertForADFS": {
+            "value": "[variables('CertForADFS')]"
+          },
+          "ouPath": {
+            "value": "[variables('ouPathAdmin')]"
+          },
+          "ilbID": {
+            "value": "[variables('ilbADFSID')]"
+          },
+          "diagnosticsStorageAccountName": {
+            "value": "[parameters('diagnosticsStorageAccountName')]"
+          }
+        }
+      }
+    },
+
+    {
+      "comments": "Deploy ADFS Role on first VM in the new region",
+      "name": "[variables('adfsFarmTemplatesDeployment')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsVmDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('adfsFarmTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "adfsVMName": {
+            "value": "[variables('adfsVMName')]"
+          },
+          "primaryADFSserver": {
+            "value": "[variables('adfsVMName')]"
+          },
+          "domainName": {
+            "value": "[parameters('domainName')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "adfsSVCname": {
+            "value": "[parameters('adfsSVCname')]"
+          },
+          "adfsSVCPassword": {
+            "value": "[parameters('adfsSVCPassword')]"
+          },
+          "assetLocationStorageAccount": {
+            "value": "[variables('assetLocationStorageAccount')]"
+          },
+          "configurationFunction": {
+            "value": "[variables('configurationFunctionDSC')]"
+          },
+          "ADFSServiceCert": {
+            "value": "[parameters('ADFSServiceCert')]"
+          },
+          "storageAccountKeyviaKeyvault": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('secretskeyVaultID')]"
+              },
+              "secretName": "[variables('secretName')]"
+            }
+          },
+          "storageAccountSASTokenviaKeyvault": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('secretskeyVaultID')]"
+              },
+              "secretName": "[variables('secretnameSASurl')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "comments": "Deploy ADFS Farm on VM2 in a new Region",
+      "name": "[variables('adfsFarmTemplatesDeploymentonVM2')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsVm2Deployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('adfsFarmTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "adfsVMName": {
+            "value": "[variables('adfsVM2Name')]"
+          },
+          "primaryADFSserver": {
+            "value": "[variables('adfsVMName')]"
+          },
+          "domainName": {
+            "value": "[parameters('domainName')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "adfsSVCname": {
+            "value": "[parameters('adfsSVCname')]"
+          },
+          "adfsSVCPassword": {
+            "value": "[parameters('adfsSVCPassword')]"
+          },
+          "assetLocationStorageAccount": {
+            "value": "[variables('assetLocationStorageAccount')]"
+          },
+          "configurationFunction": {
+            "value": "[variables('configurationFunctionDSC')]"
+          },
+          "ADFSServiceCert": {
+            "value": "[parameters('ADFSServiceCert')]"
+          },
+          "storageAccountKeyviaKeyvault": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('secretskeyVaultID')]"
+              },
+              "secretName": "[variables('secretName')]"
+            }
+          },
+          "storageAccountSASTokenviaKeyvault": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('secretskeyVaultID')]"
+              },
+              "secretName": "[variables('secretnameSASurl')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('deployVMDiagnosticsADFS1')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsVmDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('vmDiagnosticsTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmName": {
+            "value": "[variables('adfsVMName')]"
+          },
+          "diagnosticsStorageAccountName": {
+            "value": "[parameters('diagnosticsStorageAccountName')]"
+          },
+          "accountid": {
+            "value": "[variables('diagnosticsAccountid')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('deployVMDiagnosticsADFS2')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsVm2Deployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('vmDiagnosticsTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmName": {
+            "value": "[variables('adfsVM2Name')]"
+          },
+          "diagnosticsStorageAccountName": {
+            "value": "[parameters('diagnosticsStorageAccountName')]"
+          },
+          "accountid": {
+            "value": "[variables('diagnosticsAccountid')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('deployAntimalwareADFS1')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsVmDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('vmAntimalwareTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmName": {
+            "value": "[variables('adfsVMName')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('deployAntimalwareADFS2')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsVm2Deployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('vmAntimalwareTemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmName": {
+            "value": "[variables('adfsVM2Name')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('encryptADFS1')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsFarmTemplatesDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('vmADETemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmName": {
+            "value": "[variables('adfsVMName')]"
+          },
+          "adeKeyVaultName": {
+            "value": "[parameters('adeKeyVaultName')]"
+          },
+          "keyVaultResourceGroup": {
+            "value": "[parameters('adeKeyVaultResourceGroup')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "[variables('encryptADFS2')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[variables('adfsFarmTemplatesDeploymentonVM2')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('vmADETemplateURL')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmName": {
+            "value": "[variables('adfsVM2Name')]"
+          },
+          "adeKeyVaultName": {
+            "value": "[parameters('adeKeyVaultName')]"
+          },
+          "keyVaultResourceGroup": {
+            "value": "[parameters('adeKeyVaultResourceGroup')]"
+          }
+        }
+      }
+    }
+  ],
   "outputs": {}
 }
