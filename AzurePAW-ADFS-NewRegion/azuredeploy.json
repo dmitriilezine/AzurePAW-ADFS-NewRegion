@@ -64,32 +64,7 @@
       },
       "defaultValue": "Subscription ID for Secrets Key Vault that provide access to the deployment scripts."
     },
-    "secretsVaultName": {
-      "type": "string",
-      "metadata": {
-        "description": "The name of the Key Vault where secrets are stored"
-      }
-    },
-    "secretsKeyVaultRG": {
-      "type": "string",
-      "metadata": {
-        "description": "The name of the RG where Secrets Key Vault is stored"
-      }
-    },
-    "ADFSCertID": {
-      "type": "string",
-      "metadata": {
-        "description": "ADFS Cert to be deployed to ADFS VMs. Certificate container and id from the AKV, for example mycertcontainer/453l4k5j3lk45jk235jl3k5j34 "
-      },
-      "defaultValue": "Replace with your mycertcontainer/453l4k5j3lk45jk235jl3k5j34."
-    },
-    "ADFSServiceCert": {
-      "type": "string",
-      "metadata": {
-        "description": "Subject name of the external cert for ADFS. This must match the subject from the cert in the ADFSCertID "
-      },
-      "defaultValue": "Replace with your fs.contoso.com ADFS cert subject name"
-    },
+
     "VirtualMachineSize": {
       "type": "string",
       "allowedValues": [
@@ -159,6 +134,32 @@
         "description": "Specify storage account RG"
       }
     },
+    "DepSecretsVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Key Vault where secrets are stored"
+      }
+    },
+    "DepSecretsKeyVaultRG": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the RG where Secrets Key Vault is stored"
+      }
+    },
+    "ADFSCertID": {
+      "type": "string",
+      "metadata": {
+        "description": "ADFS Cert to be deployed to ADFS VMs. Certificate container and id from the AKV, for example mycertcontainer/453l4k5j3lk45jk235jl3k5j34 "
+      },
+      "defaultValue": "Replace with your mycertcontainer/453l4k5j3lk45jk235jl3k5j34."
+    },
+    "ADFSServiceCert": {
+      "type": "string",
+      "metadata": {
+        "description": "Subject name of the external cert for ADFS. This must match the subject from the cert in the ADFSCertID "
+      },
+      "defaultValue": "Replace with your fs.contoso.com ADFS cert subject name"
+    },
     "adeKeyVaultName": {
       "type": "string",
       "metadata": {
@@ -169,6 +170,18 @@
       "type": "string",
       "metadata": {
         "description": "ADE Key Vault RG"
+      }
+    },
+    "secretsVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Key Vault where secrets for accessing DSC/PS are stored"
+      }
+    },
+    "secretsKeyVaultRG": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the RG where Secrets Key Vault is stored"
       }
     },
     "AzurePAWPOC1SAKey2": {
@@ -264,7 +277,11 @@
     "secretnameSASurl": "[parameters('AzurePAWPOC1SAS')]",
     "secretsKeyVaultRG": "[parameters('secretsKeyVaultRG')]",
     "secretskeyVaultID": "[concat('/subscriptions/', parameters('subscriptionID'), '/resourceGroups/', variables('secretsKeyVaultRG'), '/providers/Microsoft.KeyVault/vaults/', variables('secretsVaultName'))]",
-    "CertForADFS": "[concat('https://', parameters('secretsVaultName'), '.vault.azure.net:443/secrets/', parameters('ADFSCertID'))]",
+
+    "DepSecretsVaultName": "[parameters('DepSecretsVaultName')]",
+    "DepSecretsKeyVaultRG": "[parameters('DepSecretsKeyVaultRG')]",
+    "DepSecretskeyVaultID": "[concat('/subscriptions/', parameters('subscriptionID'), '/resourceGroups/', variables('DepSecretsKeyVaultRG'), '/providers/Microsoft.KeyVault/vaults/', variables('DepSecretsVaultName'))]",
+    "CertForADFS": "[concat('https://', parameters('DepSecretsVaultName'), '.vault.azure.net:443/secrets/', parameters('ADFSCertID'))]",
 
     "adfsAvailabilitySetName": "[parameters('adfsAvailabiltySetR2')]",
 
@@ -357,7 +374,7 @@
             "value": "[variables('adfsAvailabilitySetName')]"
           },
           "keyVaultID": {
-            "value": "[variables('secretskeyVaultID')]"
+            "value": "[variables('DepSecretskeyVaultID')]"
           },
           "CertForADFS": {
             "value": "[variables('CertForADFS')]"
@@ -421,7 +438,7 @@
             "value": "[variables('adfsAvailabilitySetName')]"
           },
           "keyVaultID": {
-            "value": "[variables('secretskeyVaultID')]"
+            "value": "[variables('DepSecretskeyVaultID')]"
           },
           "CertForADFS": {
             "value": "[variables('CertForADFS')]"
