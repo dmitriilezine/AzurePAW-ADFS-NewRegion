@@ -23,6 +23,13 @@
       },
       "defaultValue": "[concat('Subscription#',subscription().subscriptionId)]"
     },
+    "PrimaryADFSserver": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the ADFS Primary Server"
+      },
+      "defaultValue": "adfs1-lab"
+    },
     "adfsSVCname": {
       "type": "string",
       "metadata": {
@@ -475,7 +482,7 @@
             "value": "[variables('adfsVMName')]"
           },
           "primaryADFSserver": {
-            "value": "[variables('adfsVMName')]"
+            "value": "[parameters('PrimaryADFSserver')]"
           },
           "domainName": {
             "value": "[parameters('domainName')]"
@@ -539,7 +546,7 @@
             "value": "[variables('adfsVM2Name')]"
           },
           "primaryADFSserver": {
-            "value": "[variables('adfsVMName')]"
+            "value": "[parameters('PrimaryADFSserver')]"
           },
           "domainName": {
             "value": "[parameters('domainName')]"
